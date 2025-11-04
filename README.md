@@ -1,19 +1,84 @@
-# :earth_americas: GDP dashboard template
+import streamlit as st
+import pandas as pd
+import yfinance as yf
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 
-A simple Streamlit app showing the GDP of different countries in the world.
+st.set_page_config(page_title="AI Decision Agent", page_icon="🤖", layout="centered")
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://gdp-dashboard-template.streamlit.app/)
+st.title("🤖 AI Decision Agent Dashboard")
+st.markdown("Choose an agent below to make smart decisions:")
 
-### How to run it on your own machine
+# Tabs for different agents
+tab1, tab2 = st.tabs(["🏦 Loan Approval Agent", "📈 Stock Advisor Agent"])
 
-1. Install the requirements
+# ============================
+# 🏦 TAB 1: Loan Approval Agent
+# ============================
+with tab1:
+    st.header("🏦 Loan Approval Decision Agent")
+        st.write("This AI model predicts if a loan should be approved based on income and credit score.")
 
-   ```
-   $ pip install -r requirements.txt
-   ```
+            # Example dataset
+                data = {
+                        "income": [30000, 40000, 50000, 60000, 70000, 90000],
+                                "credit_score": [550, 600, 650, 700, 750, 800],
+                                        "loan_approved": [0, 0, 1, 1, 1, 1]
+                                            }
+                                                df = pd.DataFrame(data)
 
-2. Run the app
+                                                    X = df[["income", "credit_score"]]
+                                                        y = df["loan_approved"]
 
-   ```
-   $ streamlit run streamlit_app.py
-   ```
+                                                            model = DecisionTreeClassifier()
+                                                                model.fit(X, y)
+
+                                                                    income = st.number_input("💰 Enter your income:", min_value=0)
+                                                                        credit = st.number_input("💳 Enter your credit score:", min_value=300, max_value=900)
+
+                                                                            if st.button("Check Loan Decision"):
+                                                                                    prediction = model.predict([[income, credit]])[0]
+                                                                                            if prediction == 1:
+                                                                                                        st.success("✅ Loan Approved!")
+                                                                                                                else:
+                                                                                                                            st.error("❌ Loan Denied!")
+
+                                                                                                                            # ============================
+                                                                                                                            # 📈 TAB 2: Stock Advisor Agent
+                                                                                                                            # ============================
+                                                                                                                            with tab2:
+                                                                                                                                st.header("📈 AI Stock Advisor Agent")
+                                                                                                                                    st.write("This AI suggests **Buy / Hold / Sell** decisions using moving average strategy.")
+
+                                                                                                                                        ticker = st.text_input("Enter stock symbol (e.g., AAPL, TCS.NS, INFY.NS):", "AAPL")
+
+                                                                                                                                            if st.button("Analyze Stock"):
+                                                                                                                                                    data = yf.download(ticker, period="6mo", interval="1d")
+
+                                                                                                                                                            if data.empty:
+                                                                                                                                                                        st.error("⚠️ No data found for that symbol.")
+                                                                                                                                                                                else:
+                                                                                                                                                                                            data["SMA5"] = data["Close"].rolling(5).mean()
+                                                                                                                                                                                                        data["SMA20"] = data["Close"].rolling(20).mean()
+                                                                                                                                                                                                                    data["Signal"] = 0
+                                                                                                                                                                                                                                data.loc[data["SMA5"] > data["SMA20"], "Signal"] = 1  # Buy
+                                                                                                                                                                                                                                            data.loc[data["SMA5"] < data["SMA20"], "Signal"] = -1 # Sell
+
+                                                                                                                                                                                                                                                        data = data.dropna()
+                                                                                                                                                                                                                                                                    X = data[["SMA5", "SMA20"]]
+                                                                                                                                                                                                                                                                                y = data["Signal"]
+
+                                                                                                                                                                                                                                                                                            model = RandomForestClassifier()
+                                                                                                                                                                                                                                                                                                        model.fit(X, y)
+
+                                                                                                                                                                                                                                                                                                                    latest = X.iloc[-1].values.reshape(1, -1)
+                                                                                                                                                                                                                                                                                                                                action = model.predict(latest)[0]
+
+                                                                                                                                                                                                                                                                                                                                            if action == 1:
+                                                                                                                                                                                                                                                                                                                                                            st.success("📊 Recommendation: **BUY** 🚀")
+                                                                                                                                                                                                                                                                                                                                                                        elif action == -1:
+                                                                                                                                                                                                                                                                                                                                                                                        st.error("📉 Recommendation: **SELL** ⚠️")
+                                                                                                                                                                                                                                                                                                                                                                                                    else:
+                                                                                                                                                                                                                                                                                                                                                                                                                    st.info("🤝 Recommendation: **HOLD**")
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                st.line_chart(data[["Close", "SMA5", "SMA20"]])
