@@ -1,151 +1,84 @@
-import streamlit as st
-import pandas as pd
-import math
-from pathlib import Path
+                                                                                                  iprt streamlit as st
+                                                                                                  import pandas as pd
+                                                                                                  import yfinance as yf
+                                                                                                  from sklearn.tree import DecisionTreeClassifier
+                                                                                                  from sklearn.ensemble import RandomForestClassifier
 
-# Set the title and favicon that appear in the Browser's tab bar.
-st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
-)
+                                                                                                  st.set_page_config(page_title="AI Decision Agent", page_icon="🤖", layout="centered")
 
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
+                                                                                                  st.title("🤖 AI Decision Agent Dashboard")
+                                                                                                  st.markdown("Choose an agent below to make smart decisions:")
 
-@st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
+                                                                                                  # Tabs for different agentsfjcbb
+                                                                                                  tab1, tab2 = st.tabs(["🏦 Loan Approval Agent", "📈 Stock Advisor Agent"])
 
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
+                                                                                                  # ============================
+                                                                                                  # 🏦 TAB 1: Loan Approval Agent
+                                                                                                  # ============================
+                                                                                                  with tab1:
+                                                                                                      st.header("🏦 Loan Approval Decision Agent")
+                                                                                                          st.write("This AI model predicts if a loan should be approved based on income and credit score.")
 
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
+                                                                                                              # Example dataset
+                                                                                                                  data = {
+                                                                                                                          "income": [30000, 40000, 50000, 60000, 70000, 90000],
+                                                                                                                                  "credit_score": [550, 600, 650, 700, 750, 800],
+                                                                                                                                          "loan_approved": [0, 0, 1, 1, 1, 1]
+                                                                                                                                              }
+                                                                                                                                                  df = pd.DataFrame(data)
 
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
+                                                                                                                                                      X = df[["income", "credit_score"]]
+                                                                                                                                                          y = df["loan_approved"]
 
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
-    )
+                                                                                                                                                              model = DecisionTreeClassifier()
+                                                                                                                                                                  model.fit(X, y)
 
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
+                                                                                                                                                                      income = st.number_input("💰 Enter your income:", min_value=0)
+                                                                                                                                                                          credit = st.number_input("💳 Enter your credit score:", min_value=300, max_value=900)
 
-    return gdp_df
+                                                                                                                                                                              if st.button("Check Loan Decision"):
+                                                                                                                                                                                      prediction = model.predict([[income, credit]])[0]
+                                                                                                                                                                                              if prediction == 1:
+                                                                                                                                                                                                          st.success("✅ Loan Approved!")
+                                                                                                                                                                                                                  else:
+                                                                                                                                                                                                                              st.error("❌ Loan Denied!")
 
-gdp_df = get_gdp_data()
+                                                                                                                                                                                                                              # ============================
+                                                                                                                                                                                                                              # 📈 TAB 2: Stock Advisor Agent
+                                                                                                                                                                                                                              # ============================
+                                                                                                                                                                                                                              with tab2:
+                                                                                                                                                                                                                                  st.header("📈 AI Stock Advisor Agent")
+                                                                                                                                                                                                                                      st.write("This AI suggests **Buy / Hold / Sell** decisions using moving average strategy.")
 
-# -----------------------------------------------------------------------------
-# Draw the actual page
+                                                                                                                                                                                                                                          ticker = st.text_input("Enter stock symbol (e.g., AAPL, TCS.NS, INFY.NS):", "AAPL")
 
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
+                                                                                                                                                                                                                                              if st.button("Analyze Stock"):
+                                                                                                                                                                                                                                                      data = yf.download(ticker, period="6mo", interval="1d")
 
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
+                                                                                                                                                                                                                                                              if data.empty:
+                                                                                                                                                                                                                                                                          st.error("⚠️ No data found for that symbol.")
+                                                                                                                                                                                                                                                                                  else:
+                                                                                                                                                                                                                                                                                              data["SMA5"] = data["Close"].rolling(5).mean()
+                                                                                                                                                                                                                                                                                                          data["SMA20"] = data["Close"].rolling(20).mean()
+                                                                                                                                                                                                                                                                                                                      data["Signal"] = 0
+                                                                                                                                                                                                                                                                                                                                  data.loc[data["SMA5"] > data["SMA20"], "Signal"] = 1  # Buy
+                                                                                                                                                                                                                                                                                                                                              data.loc[data["SMA5"] < data["SMA20"], "Signal"] = -1 # Sell
 
-# Add some spacing
-''
-''
+                                                                                                                                                                                                                                                                                                                                                          data = data.dropna()
+                                                                                                                                                                                                                                                                                                                                                                      X = data[["SMA5", "SMA20"]]
+                                                                                                                                                                                                                                                                                                                                                                                  y = data["Signal"]
 
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
+                                                                                                                                                                                                                                                                                                                                                                                              model = RandomForestClassifier()
+                                                                                                                                                                                                                                                                                                                                                                                                          model.fit(X, y)
 
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
+                                                                                                                                                                                                                                                                                                                                                                                                                      latest = X.iloc[-1].values.reshape(1, -1)
+                                                                                                                                                                                                                                                                                                                                                                                                                                  action = model.predict(latest)[0]
 
-countries = gdp_df['Country Code'].unique()
+                                                                                                                                                                                                                                                                                                                                                                                                                                              if action == 1:
+                                                                                                                                                                                                                                                                                                                                                                                                                                                              st.success("📊 Recommendation: **BUY** 🚀")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                          elif action == -1:
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          st.error("📉 Recommendation: **SELL** ⚠️")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      else:
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      st.info("🤝 Recommendation: **HOLD**")
 
-if not len(countries):
-    st.warning("Select at least one country")
-
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
-
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
-
-st.header('GDP over time', divider='gray')
-
-''
-
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
-
-''
-''
-
-
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
-
-st.header(f'GDP in {to_year}', divider='gray')
-
-''
-
-cols = st.columns(4)
-
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
-
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
-        else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
-
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
-        )
+                                                                                                                                        
